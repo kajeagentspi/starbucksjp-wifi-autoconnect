@@ -1,0 +1,6 @@
+# runtime logs / state (never commit these)
+*.log
+*.cookies
+*.cookiejar
+__pycache__/
+.DS_Store
