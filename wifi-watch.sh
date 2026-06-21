@@ -27,6 +27,7 @@ GATE_HOSTS="${GATE_HOSTS:-wi2.ne.jp}"      # space-separated portal signatures t
 GATEWAY="${GATEWAY:-}"                     # optional override; auto-detected from $WIFI_IFACE default route if empty
 RELOGIN_RETRY="${RELOGIN_RETRY:-3}"
 COOLDOWN="${COOLDOWN:-15}"                 # seconds after an action before re-arming
+WI2_WINDOW="${WI2_WINDOW:-300}"            # seconds a Wi2 sighting authorizes the toggle fallback
 
 # ---------------- paths ----------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -103,6 +104,12 @@ probe_captive() {
   $RM -f "$hdr" "$body"
 }
 
+# True if we've seen the Wi2 portal recently (authorizes the toggle fallback off
+# a pure-OFFLINE state, so we never toggle Wi-Fi on a non-Wi2 network).
+recently_on_wi2() {
+  [ "${LAST_WI2_SEEN:-0}" -gt 0 ] && [ $(( $($DATE +%s) - ${LAST_WI2_SEEN:-0} )) -lt "$WI2_WINDOW" ]
+}
+
 # True if the redirect URL matches one of our portal signatures (network gate).
 is_target() {
   local loc="$1" g
@@ -160,6 +167,7 @@ fallback_toggle() {
 }
 
 LAST_ACTION=0
+LAST_WI2_SEEN=0
 NON_WI2_LOGGED=0
 
 handle_expiry() {
@@ -183,6 +191,7 @@ handle_expiry() {
       ;;
     REDIR)
       if is_target "$PROBE_LOC"; then
+        LAST_WI2_SEEN=$now
         log "target portal matched -> in-place relogin"
         if do_relogin "$PROBE_LOC"; then
           log "RELOGIN OK (no Wi-Fi disconnect)"
@@ -191,16 +200,20 @@ handle_expiry() {
           fallback_toggle
         fi
       else
+        # A captive portal that isn't ours -> stay quiet in the main log (capture log only).
         if [ "$NON_WI2_LOGGED" -eq 0 ]; then
-          log "non-target portal ($(redact_url "$PROBE_LOC")) -> ignoring (not our network)"
+          echo "$($DATE '+%Y-%m-%d %H:%M:%S') non-target portal ($(redact_url "$PROBE_LOC")) -> ignoring (not our network)" >> "$CAPTURE_LOG"
           NON_WI2_LOGGED=1
         fi
       fi
       ;;
     OFFLINE)
-      if gateway_up; then
-        log "offline but still associated -> fallback toggle"
+      if gateway_up && recently_on_wi2; then
+        log "offline but still associated (Wi2) -> fallback toggle"
         fallback_toggle
+      elif gateway_up; then
+        # associated to a non-Wi2 network with no captive portal -> not ours, do nothing
+        :
       else
         log "association lost -> backing off (will keep probing)"
       fi

@@ -23,7 +23,9 @@ gateway keeps answering ICMP, while only HTTP gets redirected. The captive probe
 closes that gap.
 
 **Network gating:** it only acts when the captive redirect points at the Wi2
-portal (`wi2.ne.jp`). On any other network it logs `ONLINE` and does nothing.
+portal (`wi2.ne.jp`). On any other network it does nothing — no relogin, no Wi-Fi
+toggle, no log noise. The toggle fallback also requires a recent Wi2 sighting, so
+it never touches Wi-Fi on a network it doesn't recognize.
 
 ## Requirements
 
@@ -74,6 +76,7 @@ sudo visudo -c                                        # sudoers valid
 | `GATEWAY` | _(auto)_ | local gateway override; auto-detected from the en0 default route if unset |
 | `RELOGIN_RETRY` | `3` | in-place relogin attempts before fallback |
 | `COOLDOWN` | `15` | seconds after an action before re-arming |
+| `WI2_WINDOW` | `300` | seconds a Wi2 sighting authorizes the toggle fallback |
 | `WIFI_IFACE` | `en0` | Wi-Fi interface |
 
 ## Uninstall

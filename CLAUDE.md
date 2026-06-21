@@ -24,7 +24,9 @@ browser. The watchdog verifies real connectivity afterwards via the captive prob
 ## Files
 - `wifi-watch.sh` — bash 3.2 watchdog. Ping heartbeat (8.8.8.8, ~1s, 3-strike) + 10s
   captive probe feed `handle_expiry()` → in-place relogin → Wi-Fi power-toggle fallback.
-  Network-gated on `wi2.ne.jp`. Personal params redacted in logs; gateway auto-detected.
+  **Fully inert off the Wi2 network**: relogin only fires on a `wi2.ne.jp` redirect, and
+  the toggle fallback requires a recent Wi2 sighting (`WI2_WINDOW`). Personal params
+  redacted in logs; gateway auto-detected.
 - `relogin_wi2.py` — stdlib-only Wi2 relogin, invoked via `uv run --no-project`.
 - `com.user.starbucks-wifi-watch.plist` — LaunchAgent template with `__HOME__` / `__INSTALL_DIR__` placeholders.
 - `install.sh` / `uninstall.sh` — deploy to `~/.starbucks-wifi`, install scoped sudoers, load/unload agent.
@@ -59,4 +61,4 @@ browser. The watchdog verifies real connectivity afterwards via the captive prob
 
 ## Config (env vars; see README table)
 `PING_HOST`, `PING_INTERVAL`, `PING_FAIL`, `PROBE_INTERVAL`, `GATE_HOSTS`, `GATEWAY`,
-`RELOGIN_RETRY`, `COOLDOWN`, `WIFI_IFACE`.
+`RELOGIN_RETRY`, `COOLDOWN`, `WI2_WINDOW`, `WIFI_IFACE`.
